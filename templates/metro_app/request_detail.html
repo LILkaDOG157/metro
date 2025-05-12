@@ -1,0 +1,31 @@
+<!-- request_detail.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>Заявка #{{ object.id }}</h2>
+    </div>
+    <div class="card-body">
+        <h5 class="card-title">{{ object.passenger.name }}</h5>
+        <p class="card-text">
+            <strong>Тип пассажира:</strong> {{ object.passenger.get_type_display }}<br>
+            <strong>Багаж:</strong> {% if object.passenger.has_luggage %}Да{% else %}Нет{% endif %}<br>
+            <strong>Телефон:</strong> {{ object.passenger.phone }}<br>
+            <strong>Доп. информация:</strong> {{ object.passenger.additional_info|default:"-" }}<br>
+            <hr>
+            <strong>Маршрут:</strong> {{ object.start_station }} → {{ object.end_station }}<br>
+            <strong>Запрошенное время:</strong> {{ object.requested_time|date:"d.m.Y H:i" }}<br>
+            <strong>Статус:</strong> <span class="badge bg-{% if object.status == 'completed' %}success{% elif object.status == 'cancelled' %}danger{% else %}warning{% endif %}">
+                {{ object.get_status_display }}
+            </span>
+        </p>
+        
+        {% if object.status == 'pending' and not user.is_staff %}
+            <a href="{% url 'request-assign' object.pk %}" class="btn btn-primary">Взять заявку</a>
+        {% elif object.status == 'assigned' and user.employee in object.assignment.employees.all %}
+            <a href="{% url 'request-complete' object.pk %}" class="btn btn-success">Завершить сопровождение</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

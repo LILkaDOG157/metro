@@ -1,0 +1,21 @@
+<!-- home.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Система сопровождения пассажиров</h1>
+    <p class="lead">Московский метрополитен - помощь маломобильным гражданам</p>
+    <hr class="my-4">
+    {% if user.is_authenticated %}
+        <p>Добро пожаловать, {{ user.get_full_name }}!</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'request-list' %}" role="button">Мои заявки</a>
+    {% else %}
+        <p>Для работы в системе необходимо войти или зарегистрироваться</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Войти</a>
+        <a class="btn btn-secondary btn-lg" href="{% url 'register' %}" role="button">Регистрация</a>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+

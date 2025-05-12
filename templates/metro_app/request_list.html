@@ -1,0 +1,23 @@
+<!-- request_list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Список заявок</h2>
+
+<div class="list-group">
+    {% for request in requests %}
+    <a href="{% url 'request-detail' request.pk %}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ request.passenger.name }} ({{ request.passenger.get_type_display }})</h5>
+            <small class="text-muted">{{ request.get_status_display }}</small>
+        </div>
+        <p class="mb-1">
+            Маршрут: {{ request.start_station }} → {{ request.end_station }}
+        </p>
+        <small>Запрошено: {{ request.requested_time|date:"d.m.Y H:i" }}</small>
+    </a>
+    {% empty %}
+    <div class="alert alert-info">Нет доступных заявок</div>
+    {% endfor %}
+</div>
+{% endblock %}
