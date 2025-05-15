@@ -1,5 +1,80 @@
 <!-- home.html -->
 {% extends "base.html" %}
+{% load static %}
+{% load metro_filters %}
+
+{% block extra_css %}
+<style>
+    .metro-map {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        background: #f5f5f5;
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    
+    .metro-line {
+        position: absolute;
+        height: 4px;
+        background: #000;
+        transform-origin: left center;
+    }
+    
+    .station {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border: 2px solid #000;
+        border-radius: 50%;
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+    }
+    
+    .station:hover {
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    
+    .station-info {
+        position: absolute;
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: none;
+        z-index: 1000;
+    }
+    
+    .station-info h3 {
+        margin: 0 0 5px 0;
+        font-size: 14px;
+    }
+    
+    .station-info p {
+        margin: 0;
+        font-size: 12px;
+    }
+    
+    .line-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    
+    .line-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .line-color {
+        width: 20px;
+        height: 4px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="jumbotron">
@@ -15,6 +90,142 @@
         <a class="btn btn-secondary btn-lg" href="{% url 'register' %}" role="button">Регистрация</a>
     {% endif %}
 </div>
+
+<div class="container">
+    <h1 class="text-center mb-4">Схема метро</h1>
+    
+    <div class="line-legend">
+        {% for line in lines %}
+        <div class="line-item">
+            <div class="line-color" style="background: {{ line|line_color }}"></div>
+            <span>{{ line }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="metro-map" id="metroMap">
+        {% for line in lines %}
+            {% for station in stations_by_line|get_item:line %}
+            <div class="station" 
+                 data-name="{{ station.name }}"
+                 data-line="{{ station.line }}"
+                 data-lat="{{ station.latitude }}"
+                 data-lon="{{ station.longitude }}"
+                 style="left: {{ station.longitude|normalize_coord }}%; top: {{ station.latitude|normalize_coord }}%;">
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    
+    <div class="station-info" id="stationInfo"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stations = document.querySelectorAll('.station');
+    const stationInfo = document.getElementById('stationInfo');
+    
+    // Функция для отображения информации о станции
+    function showStationInfo(station) {
+        const name = station.dataset.name;
+        const line = station.dataset.line;
+        
+        stationInfo.innerHTML = `
+            <h3>${name}</h3>
+            <p>Линия: ${line}</p>
+        `;
+        
+        // Позиционируем информационное окно
+        const rect = station.getBoundingClientRect();
+        const mapRect = document.getElementById('metroMap').getBoundingClientRect();
+        
+        stationInfo.style.left = (rect.left - mapRect.left + rect.width/2) + 'px';
+        stationInfo.style.top = (rect.top - mapRect.top - stationInfo.offsetHeight - 10) + 'px';
+        stationInfo.style.display = 'block';
+    }
+    
+    // Обработчики событий для станций
+    stations.forEach(station => {
+        station.addEventListener('mouseenter', () => showStationInfo(station));
+        station.addEventListener('mouseleave', () => {
+            stationInfo.style.display = 'none';
+        });
+    });
+    
+    // Рисуем линии между станциями
+    function drawLines() {
+        const lines = {};
+        stations.forEach(station => {
+            const line = station.dataset.line;
+            if (!lines[line]) {
+                lines[line] = [];
+            }
+            lines[line].push(station);
+        });
+        
+        // Сортируем станции по координатам
+        Object.keys(lines).forEach(line => {
+            lines[line].sort((a, b) => {
+                return parseFloat(a.dataset.lon) - parseFloat(b.dataset.lon);
+            });
+        });
+        
+        // Рисуем линии
+        Object.keys(lines).forEach(line => {
+            const stations = lines[line];
+            for (let i = 0; i < stations.length - 1; i++) {
+                const start = stations[i];
+                const end = stations[i + 1];
+                
+                const line = document.createElement('div');
+                line.className = 'metro-line';
+                line.style.backgroundColor = getLineColor(line);
+                
+                const startRect = start.getBoundingClientRect();
+                const endRect = end.getBoundingClientRect();
+                const mapRect = document.getElementById('metroMap').getBoundingClientRect();
+                
+                const startX = startRect.left - mapRect.left + startRect.width/2;
+                const startY = startRect.top - mapRect.top + startRect.height/2;
+                const endX = endRect.left - mapRect.left + endRect.width/2;
+                const endY = endRect.top - mapRect.top + endRect.height/2;
+                
+                const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+                
+                line.style.width = length + 'px';
+                line.style.left = startX + 'px';
+                line.style.top = startY + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                
+                document.getElementById('metroMap').appendChild(line);
+            }
+        });
+    }
+    
+    // Функция для получения цвета линии
+    function getLineColor(line) {
+        const colors = {
+            'Красная': '#FF0000',
+            'Синяя': '#0000FF',
+            'Зеленая': '#00FF00',
+            'Оранжевая': '#FFA500',
+            'Фиолетовая': '#800080',
+            'Коричневая': '#A52A2A',
+            'Серая': '#808080',
+            'Желтая': '#FFFF00',
+            'Бирюзовая': '#40E0D0',
+            'Розовая': '#FFC0CB'
+        };
+        return colors[line] || '#000000';
+    }
+    
+    // Запускаем отрисовку линий после загрузки страницы
+    setTimeout(drawLines, 100);
+});
+</script>
 {% endblock %}
 
 

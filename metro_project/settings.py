@@ -30,6 +30,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -59,12 +60,8 @@ WSGI_APPLICATION = 'metro_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'metro_db',
-        'USER': 'metro_user',
-        'PASSWORD': 'metro_pass',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -87,6 +84,11 @@ LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_TZ = True
+
+# Настройки для админки
+ADMIN_SITE_HEADER = "Администрирование метро"
+ADMIN_SITE_TITLE = "Метро"
+ADMIN_INDEX_TITLE = "Управление метро"
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]

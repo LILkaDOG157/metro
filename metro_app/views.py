@@ -12,7 +12,18 @@ import pandas as pd
 from datetime import datetime
 
 def home(request):
-    return render(request, 'metro_app/home.html')
+    stations = MetroStation.objects.all()
+    # Получаем уникальные линии метро
+    lines = stations.values_list('line', flat=True).distinct()
+    # Группируем станции по линиям
+    stations_by_line = {line: stations.filter(line=line) for line in lines}
+    
+    context = {
+        'stations': stations,
+        'stations_by_line': stations_by_line,
+        'lines': lines,
+    }
+    return render(request, 'metro_app/home.html', context)
 
 def register_employee(request):
     if request.method == 'POST':
